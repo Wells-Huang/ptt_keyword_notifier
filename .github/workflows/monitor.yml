@@ -2,6 +2,7 @@ name: Monitor PTT Gamesale
 
 on:
   schedule:
+    # Taipei local time; GitHub may delay best-effort scheduled runs.
     - cron: "2/5 * * * *"
       timezone: "Asia/Taipei"
   workflow_dispatch:
