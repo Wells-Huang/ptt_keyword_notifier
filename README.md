@@ -41,4 +41,4 @@ Webhook URL 不得寫入 repository、issue、log 或 workflow output。
 5. 再執行一次 normal，確認沒有新 Discord 訊息，也沒有空 commit。
 6. 觀察至少兩次自動 schedule run 後，才停用本機 Windows 排程。
 
-GitHub schedule 是 best effort，可能延遲或偶發漏跑；Actions history 是主要診斷來源。
+GitHub schedule 是 best effort，可能延遲或偶發漏跑；Actions history 是主要診斷來源。若剛建立 workflow 後尚未出現 schedule run，先推送一次後續 default-branch commit 讓 GitHub 重新同步排程。
