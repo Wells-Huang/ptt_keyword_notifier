@@ -1,0 +1,89 @@
+name: Monitor PTT Gamesale
+
+on:
+  schedule:
+    - cron: "2/5 * * * *"
+      timezone: "Asia/Taipei"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - test-discord
+          - normal
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ptt-keyword-notifier
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      SELECTED_MODE: ${{ github.event_name == 'schedule' && 'normal' || inputs.mode }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool config/monitor.json >/dev/null
+          python -m json.tool data/state.json >/dev/null
+          if [[ "$SELECTED_MODE" != "dry-run" && -z "$DISCORD_WEBHOOK_URL" ]]; then
+            echo "DISCORD_WEBHOOK_URL is required for this mode" >&2
+            exit 2
+          fi
+
+      - name: Run monitor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m src.ptt_keyword_notifier \
+            --config config/monitor.json \
+            --state data/state.json \
+            --mode "$SELECTED_MODE"
+
+      - name: Update monthly heartbeat
+        if: ${{ env.SELECTED_MODE == 'normal' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_month="$(TZ=Asia/Taipei date +%Y-%m)"
+          previous_month="$(cat data/heartbeat.txt 2>/dev/null || true)"
+          if [[ "$current_month" != "$previous_month" ]]; then
+            printf '%s\n' "$current_month" > data/heartbeat.txt
+          fi
+
+      - name: Commit state changes
+        if: ${{ env.SELECTED_MODE == 'normal' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- data/state.json data/heartbeat.txt; then
+            echo "No state changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add data/state.json data/heartbeat.txt
+          git commit -m "chore(state): update notifier state [skip ci]"
+          git push origin HEAD:main

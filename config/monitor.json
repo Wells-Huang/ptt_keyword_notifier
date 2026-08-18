@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "board": "Gamesale",
+  "pages": 2,
+  "timezone": "Asia/Taipei",
+  "quiet_hours": {
+    "start": "01:00",
+    "end": "08:30"
+  },
+  "request": {
+    "timeout_seconds": 20,
+    "max_attempts": 3,
+    "user_agent": "ptt-keyword-notifier/1.0 (+https://github.com/Wells-Huang/ptt_keyword_notifier)"
+  },
+  "rules": [
+    {
+      "id": "dynasty-warriors-origins-ns2-sale",
+      "description": "真三國無雙 起源 Nintendo Switch 2 販售文"
+    }
+  ]
+}
